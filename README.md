@@ -97,14 +97,18 @@ oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-a
 * Add local user and reboot
 13. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
 14. sudo -i
-cd /home/ec2-user/oscap
+15. fips-mode-setup --check
+```
+FIPS mode is enabled.
+```
+16. cd /home/ec2-user/oscap
 * Run playbook 
 ```
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-post.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
 ```
-15. chown -R ec2-user:ec2-user /home/ec2-user
-16. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
+17. chown -R ec2-user:ec2-user /home/ec2-user
+18. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
 * Open a second WSL terminal and cd to staging directory to pull file
-17. Open report in browser
+19. Open report in browser
 
 ![Screenshot](resources/oscap2.JPG)
