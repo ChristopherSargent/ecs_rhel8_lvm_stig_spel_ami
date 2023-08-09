@@ -24,7 +24,7 @@
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
 ```
 8. chown -R ec2-user:ec2-user /home/ec2-user
-9. scp -i "alpha_key_pair.pem" ec2-user@52.61.67.255:oscap/* .
+9. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
 * Open a second WSL terminal and cd to staging directory to pull file
 10. Open report in browser
 
@@ -46,20 +46,27 @@ oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-a
 ```
 15. cp /usr/share/scap-security-guide/ansible/rhel8-playbook-stig.yml /home/ec2-user/rhel8-playbook-stig-fixed.yml
 * I had to fix the playbook and staged it in the playbooks directory
-16. reboot 
+16. fips-mode-setup --enable
+
+17. adduser christopher.sargent && usermod -aG wheel christopher.sargent && passwd christopher.sargent && reboot 
+* Add local user
 
 # Run oscap scan to post hardening score
-17. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
-18. sudo -i
-19. cd /home/ec2-user/oscap
+18. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
+19. sudo -i
+20. fips-mode-setup --check
+```
+FIPS mode is enabled.
+```
+21. cd /home/ec2-user/oscap
 * Run playbook 
 ```
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-post.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
 ```
-20. chown -R ec2-user:ec2-user /home/ec2-user
-21. scp -i "alpha_key_pair.pem" ec2-user@52.61.67.255:oscap/* .
+22. chown -R ec2-user:ec2-user /home/ec2-user
+23. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
 * Open a second WSL terminal and cd to staging directory to pull file
-22. Open report in browser
+24. Open report in browser
 
 ![Screenshot](resources/oscap2.JPG)
 
