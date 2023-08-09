@@ -4,21 +4,22 @@
 * Deployed Red Hat 8 on t2.large with public IP and using alpha_key_pair
 
 # Install ssm and compliance as code
-```
+
 1. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
 2. sudo -i
 3. dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm && sudo systemctl enable amazon-ssm-agent && sudo systemctl start amazon-ssm-agent
 4. dnf install scap-security-guide ansible -y
 5. ls /usr/share/xml/scap/ssg/content/
-```
+
 ![Screenshot](resources/screen1.JPG)
-```
+
 6. oscap info /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
-```
+
 ![Screenshot](resources/screen2.JPG)
 
 # Run oscap scan to get baseline score
 7. mkdir -p /home/ec2-user/oscap && cd /home/ec2-user/oscap
+* Run playbook 
 ```
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
 ```
@@ -51,6 +52,7 @@ oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-a
 17. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
 18. sudo -i
 19. cd /home/ec2-user/oscap
+* Run playbook 
 ```
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-post.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
 ```
