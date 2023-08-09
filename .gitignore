@@ -1,0 +1,6 @@
+# ignore ssh key
+alpha_key_pair.pem
+
+# ignore variables.tf
+variables.tf
+
