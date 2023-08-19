@@ -1,8 +1,8 @@
 ![alt text](ecs.logo.JPG)
 * This repository contains instructions on using STIG-Partitioned Enterprise Linux (spel) AMIs and Compliance As Code's ansible playbooks to perform a base STIG hardening in an effort to create a hardened Red Hat Enterprise Linux 8 hardened AMI/Gold Image. For any additional details or inquiries, please contact us at c.sargent-ctr@ecstech.com.
 # Project Links
-*[SPEL](https://github.com/plus3it/spel/tree/master)
-*[ComplianceAsCode](https://github.com/ComplianceAsCode/content)
+#[SPEL](https://github.com/plus3it/spel/tree/master)
+#[ComplianceAsCode](https://github.com/ComplianceAsCode/content)
 * Deployed Red Hat 8 on t2.large with public IP and using alpha_key_pair
 * Note terraform and aws cli should be installed before proceeding 
 
