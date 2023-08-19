@@ -210,17 +210,22 @@ ssh-rsa AddPublicKeyHere alpha_key_pair
 
 # Pre hardening OSCAP #49%
 1. cd /home/ec2-user/oscap/
-2. oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-pre.xml --report /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
-3. chown -R ec2-user:ec2-user /home/ec2-user/
-4. exit && exit 
-5. mkdir RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports && cd RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports
-6. scp -i /root/ecs/alpha_key_pair.pem ec2-user@PublicIP:oscap/pg-rhel8-ami-spel-oscap-pre.report.html .
+* Run oscap
+```
+oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-pre.xml --report /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
+```
+2. chown -R ec2-user:ec2-user /home/ec2-user/
+3. exit && exit 
+4. mkdir RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports && cd RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports
+5. scp -i /root/ecs/alpha_key_pair.pem ec2-user@PublicIP:oscap/pg-rhel8-ami-spel-oscap-pre.report.html .
 
 # Hardening
-1. cd /home/ec2-user/ && git clone https://github.com/ChristopherSargent/ecs_compliance_as_code.git && cd ecs_compliance_as_code/playbooks
-2. cp /home/ec2-user/ecs_compliance_as_code/playbooks/rhel8-playbook-stig2-fixed.yml /usr/share/scap-security-guide/ansible/ && chmod 644 /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml
-3. cp /etc/ssh/sshd_config /etc/ssh/sshd_config.08192023
-4. ansible-playbook -i "localhost," -c local /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml 
+1. cd /home/ec2-user/ 
+2. git clone https://github.com/ChristopherSargent/ecs_compliance_as_code.git
+3. cd ecs_compliance_as_code/playbooks
+4. cp /home/ec2-user/ecs_compliance_as_code/playbooks/rhel8-playbook-stig2-fixed.yml /usr/share/scap-security-guide/ansible/ && chmod 644 /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml
+5. cp /etc/ssh/sshd_config /etc/ssh/sshd_config.08192023
+6. ansible-playbook -i "localhost," -c local /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml 
 ```
 localhost                  : ok=2626 changed=437  unreachable=0    failed=0    skipped=1027 rescued=0    ignored=3
 ```
