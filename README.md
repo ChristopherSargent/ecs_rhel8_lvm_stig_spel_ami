@@ -208,7 +208,7 @@ ssh-rsa AddPublicKeyHere alpha_key_pair
 ## Same thing without a password
 %wheel  ALL=(ALL)       NOPASSWD: ALL
 
-# Pre hardening OSCAP #49%
+# Pre hardening [Pre OSCAP](https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami/tree/main/reports)
 1. cd /home/ec2-user/oscap/
 * Run oscap
 ```
