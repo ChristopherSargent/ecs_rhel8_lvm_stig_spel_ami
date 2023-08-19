@@ -4,9 +4,9 @@
 # [STIG Partitioned Enterprise Linux](https://github.com/plus3it/spel/tree/master)
 # [Compliance As Code](https://github.com/ComplianceAsCode/content)
 * Deployed Red Hat 8 on t2.large with public IP and using alpha_key_pair
-* Note terraform and aws cli should be installed before proceeding 
+* Note terraform and aws cli should be installed before proceeding
 
-# Deploy EC2 and SG from spel ami 
+# Deploy EC2 and SG from spel ami
 1. ssh -i alpha_key_pair.pem ec2-user@PG-TerraformPublicIP
 2. cd /home/christopher.sargent/ && git clone https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami.git
 3. cd ecs_rhel8_lvm_stig_spel_ami/terraform && vim providers.tf
@@ -39,7 +39,7 @@ variable "selected_region" {
 }
 # aws ssh key
 variable "ssh_private_key" {
-  default         = "alpha_key_pair.pem" # specify ssh key 
+  default         = "alpha_key_pair.pem" # specify ssh key
   description     = "alpha_key_pair"
 }
 variable "vpc_id" {
@@ -93,7 +93,7 @@ variable "tags" {
   }
 }
 ```
-7. vim main.tf 
+7. vim main.tf
 ```
 # Security Group
 resource "aws_security_group" "default" {
@@ -174,28 +174,28 @@ resource "aws_instance" "pg-rhel8-lvm-stig-spel-terraform-ec2" {
 
 ![Screenshot](resources/ec2-verify1.JPG)
 
-11. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 > Actions > Security > Modify IAM role > cdm3-ec2RoleForSSM > Update role 
+11. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 > Actions > Security > Modify IAM role > cdm3-ec2RoleForSSM > Update role
 
 # Update local user password via SSM
-1. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 > Connect to Session Manager 
-2. sudo -i 
-3. passwd maintuser 
-4. dnf update -y && reboot 
+1. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 > Connect to Session Manager
+2. sudo -i
+3. passwd maintuser
+4. dnf update -y && reboot
 
 # Hardening compliance as code
 1. ssh -i maintuser@PublicIP
-2. sudo -i 
+2. sudo -i
 3. dnf install scap-security-guide ansible git vim -y
 4. mkdir -p /home/ec2-user/oscap && cd /home/ec2-user/oscap
 
-# Add time stamp to terminal and history 
+# Add time stamp to terminal and history
 1. echo "export PROMPT_COMMAND='echo -n \[\$(date +%F-%T)\]\ '" >> /etc/bashrc && echo "export HISTTIMEFORMAT='%F-%T '" >> /etc/bashrc && source /etc/bashrc
 
 # Add ansible logging
 1. ansible-config init --disabled -t all > /etc/ansible/ansible.cfg && cp /etc/ansible/ansible.cfg /etc/ansible/ansible.cfg.ORIG
 2. sed -i -e 's|;log_path=|log_path= /var/log/ansible.log|g' /etc/ansible/ansible.cfg
 
-# Fix ec2-user 
+# Fix ec2-user
 1. adduser ec2-user
 2. cd /home/ec2-user/ && mkdir .ssh && chmod 700 .ssh
 3. cd .ssh && vi authorized_keys
@@ -209,29 +209,43 @@ ssh-rsa AddPublicKeyHere alpha_key_pair
 %wheel  ALL=(ALL)       NOPASSWD: ALL
 
 # Pre hardening [OSCAP Report](https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami/tree/main/reports)
-* Note the pre hardening oscap is 49%
+* Note the pre hardening oscap score is 49%
 1. cd /home/ec2-user/oscap/
 * Run oscap
 ```
 oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-pre.xml --report /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
 ```
 2. chown -R ec2-user:ec2-user /home/ec2-user/
-3. exit && exit 
+3. exit && exit
 4. mkdir RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports && cd RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports
 5. scp -i /root/ecs/alpha_key_pair.pem ec2-user@PublicIP:oscap/pg-rhel8-ami-spel-oscap-pre.report.html .
 
 # Hardening
-1. cd /home/ec2-user/ 
+1. cd /home/ec2-user/
 2. git clone https://github.com/ChristopherSargent/ecs_compliance_as_code.git
 3. cd ecs_compliance_as_code/playbooks
 4. cp /home/ec2-user/ecs_compliance_as_code/playbooks/rhel8-playbook-stig2-fixed.yml /usr/share/scap-security-guide/ansible/ && chmod 644 /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml
 5. cp /etc/ssh/sshd_config /etc/ssh/sshd_config.08192023
-6. ansible-playbook -i "localhost," -c local /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml 
+6. ansible-playbook -i "localhost," -c local /usr/share/scap-security-guide/ansible/rhel8-playbook-stig2-fixed.yml
 ```
 localhost                  : ok=2626 changed=437  unreachable=0    failed=0    skipped=1027 rescued=0    ignored=3
 ```
 
 ![Screenshot](resources/ansible1.JPG)
 
+# Fix visudo 
+1. visudo #Uncomment # %wheel ALL=(ALL) NOPASSWD: ALL or you wont be able to sudo after hardening
+## Same thing without a password
+%wheel  ALL=(ALL)       NOPASSWD: ALL
 
-
+# Post additional hardening [OSCAP Report](https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami/tree/main/reports)
+* Note the ost hardening oscap score is 91%
+1. cd /home/ec2-user/oscap
+* Run oscap
+```
+oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-post.xml --report /home/ec2-user/oscap/pg-rhel8-ami-spel-oscap-post.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
+```
+3. chown -R ec2-user:ec2-user /home/ec2-user 
+4. exit && exit 
+4. mkdir RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports && cd RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports
+5. scp -i /root/ecs/alpha_key_pair.pem ec2-user@PublicIP:oscap/pg-rhel8-ami-spel-oscap-post.report.html .
