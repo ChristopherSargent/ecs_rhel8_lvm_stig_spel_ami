@@ -1,114 +1,185 @@
 ![alt text](ecs.logo.JPG)
-* This repository contains instructions on using compliance as code's ansible playbooks to perform a base STIG hardening in an effort to create a hardened AMI/Gold Image. For any additional details or inquiries, please contact us at c.sargent-ctr@ecstech.com.
+* This repository contains instructions on using STIG-Partitioned Enterprise Linux (spel) AMIs and Compliance As Code's ansible playbooks to perform a base STIG hardening in an effort to create a hardened Red Hat Enterprise Linux 8 hardened AMI/Gold Image. For any additional details or inquiries, please contact us at c.sargent-ctr@ecstech.com.
+# [SPEL](https://github.com/plus3it/spel/tree/master)
+
 # [ComplianceAsCode](https://github.com/ComplianceAsCode/content)
 * Deployed Red Hat 8 on t2.large with public IP and using alpha_key_pair
+* Note terraform and aws cli should be installed before proceeding 
 
-# Install ssm and compliance as code
+# Deploy EC2 and SG from spel ami 
+1. ssh -i alpha_key_pair.pem ec2-user@PG-TerraformPublicIP
+2. cd /home/christopher.sargent/ && git clone ecs_rhel8_lvm_stig_spel_ami
+3. cd ecs_rhel8_lvm_stig_spel_ami/ && vim providers.tf
+```
+# Playground
+provider "aws" {
+  region = var.selected_region
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+}
+```
+4. vim alpha_key_pair.pem
+```
+# alpha_key_pair.pem.pem key is in AWS secrets manager in playground. Cut and paste key into this file and save
+```
+5. chmod 400 alpha_key_pair.pem
+6. vim variables.tf
+```
+variable "aws_access_key" {
+  type    = string
+  default = "" # specify the access key
+}
+variable "aws_secret_key" {
+  type    = string
+  default = "" # specify the secret key
+}
+variable "selected_region" {
+  type    = string
+  default = "" # specify the aws region
+}
+# aws ssh key
+variable "ssh_private_key" {
+  default         = "alpha_key_pair.pem" # specify ssh key 
+  description     = "alpha_key_pair"
+}
+# Define Variables
+variable "vpc_id" {
+  description = "The ID of the VPC."
+  type        = string
+  default     = "" # specfigy vpc id
+}
 
-1. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
-2. sudo -i
-3. dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm && sudo systemctl enable amazon-ssm-agent && sudo systemctl start amazon-ssm-agent
-4. dnf install scap-security-guide ansible -y
-5. ls /usr/share/xml/scap/ssg/content/
+variable "ami_id" {
+  description = "The ID of the Amazon Machine Image (AMI) to use."
+  type        = string
+  default     = "ami-0b1aef95503ad8e3a"  # Provide a default AMI ID here spel-minimal-rhel-8-hvm-2023.07.1.x86_64-gp2
+}
 
-![Screenshot](resources/screen1.JPG)
+variable "availability_zone" {
+  description = "The Availability Zone in which to launch the EC2 instance."
+  type        = string
+  default     = "us-gov-west-1a"  # Provide a default Availability Zone here
+}
 
-6. oscap info /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
+variable "subnet_id" {
+  description = "The ID of the subnet."
+  type        = string
+  default     = "" #specfify subnet id
+}
 
-![Screenshot](resources/screen2.JPG)
+variable "ssh_cidr_blocks" {
+  description = "List of allowed CIDR blocks for SSH."
+  type        = list(string)
+  default     = [""] #specify allowed public IP/32
+}
 
-# Run oscap scan to get baseline score
-7. mkdir -p /home/ec2-user/oscap && cd /home/ec2-user/oscap
-* Run playbook 
-```
-oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
-```
-8. chown -R ec2-user:ec2-user /home/ec2-user
-9. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
-* Open a second WSL terminal and cd to staging directory to pull file
-10. Open report in browser
+variable "https_cidr_blocks" {
+  description = "List of allowed CIDR blocks for HTTPS."
+  type        = list(string)
+  default     = [""] #specify allowed public IP/32
+}
 
-![Screenshot](resources/oscap1.JPG)
+variable "instance_type" {
+  description = "The type of EC2 instance to launch."
+  type        = string
+  default     = "t2.large" # specify instance type
+}
 
-# Remidiate via ansible
-11. cp /etc/ssh/sshd_config /etc/ssh/sshd_config.08092023
-12. ansible-playbook -i "localhost," -c local /usr/share/scap-security-guide/ansible/rhel8-playbook-stig.yml
-* Note it takes about 25 minutes to run
+variable "tags" {
+  description = "A map of tags to apply to resources."
+  type        = map(string)
+  default = {
+    Environment = ""                                   # specify Environment Dev, Prod ect.
+    Name        = "pg-rhel8-lvm-stig-spel-terraform-ec2" # specify tag name
+  }
+}
+```
+7. vim main.tf 
+```
+# Security Group
+resource "aws_security_group" "default" {
+  name        = "pg-rhel8-lvm-stig-spel-terraform-sg"
+  description = "Used in the terraform"
+  vpc_id      = var.vpc_id
 
-![Screenshot](resources/ansible1.JPG)
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = var.ssh_cidr_blocks
+  }
 
-13. usermod -aG wheel ec2-user
-14. visudo
-* Uncomment # %wheel  ALL=(ALL)       NOPASSWD: ALL or you wont be able to sudo after hardening
-```
-## Same thing without a password
-%wheel  ALL=(ALL)       NOPASSWD: ALL
-```
-15. cp /usr/share/scap-security-guide/ansible/rhel8-playbook-stig.yml /home/ec2-user/rhel8-playbook-stig-fixed.yml
-* I had to fix the playbook and staged it in the playbooks directory
-16. fips-mode-setup --enable
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = var.https_cidr_blocks
+  }
 
-17. adduser christopher.sargent && usermod -aG wheel christopher.sargent && passwd christopher.sargent && reboot 
-* Add local user
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
-# Run oscap scan to post hardening score
-18. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
-19. sudo -i
-20. fips-mode-setup --check
-```
-FIPS mode is enabled.
-```
-21. cd /home/ec2-user/oscap
-* Run playbook 
-```
-oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-post.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
-```
-22. chown -R ec2-user:ec2-user /home/ec2-user
-23. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
-* Open a second WSL terminal and cd to staging directory to pull file
-24. Open report in browser
+# EC2 instance
+resource "aws_instance" "pg-rhel8-lvm-stig-spel-terraform-ec2" {
+  ami                         = var.ami_id
+  associate_public_ip_address = true # Enable/disable pibluc IP
+  availability_zone           = var.availability_zone
+  enclave_options {
+    enabled = false
+  }
 
-![Screenshot](resources/oscap2.JPG)
+  get_password_data                    = false
+  hibernation                          = false
+  instance_initiated_shutdown_behavior = "stop"
+  instance_type                        = var.instance_type
+  ipv6_address_count                   = 0
+  key_name                             = "alpha_key_pair"
 
-* Note the rhel8-ami-oscap-pre.report.html and rhel8-ami-oscap-post.report.html are in the reports directory
+  maintenance_options {
+    auto_recovery = "default"
+  }
 
-# Use this repo
-1. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
-2. sudo -i
-3. dnf install scap-security-guide ansible -y
-4. mkdir -p /home/ec2-user/oscap && cd /home/ec2-user/oscap
-* Run playbook 
-```
-oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-pre.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
-```
-5. cd /home && git clone git clone https://github.com/ChristopherSargent/ecs_compliance_as_code.git && cd ecs_compliance_as_code/playbooks
-6. cp rhel8-playbook-stig-fixed.yml /usr/share/scap-security-guide/ansible/
-7. cp /etc/ssh/sshd_config /etc/ssh/sshd_config.08092023
-8. ansible-playbook -i "localhost," -c local /usr/share/scap-security-guide/ansible/rhel8-playbook-stig-fixed.yml
-9. usermod -aG wheel ec2-user
-10. visudo
-* Uncomment # %wheel  ALL=(ALL)       NOPASSWD: ALL or you wont be able to sudo after hardening
-```
-## Same thing without a password
-%wheel  ALL=(ALL)       NOPASSWD: ALL
-```
-11. fips-mode-setup --enable
-12. adduser christopher.sargent && usermod -aG wheel christopher.sargent && passwd christopher.sargent && reboot 
-* Add local user and reboot
-13. ssh -i alpha_key_pair.pem ec2-user@NewRhel8PublicIP
-14. sudo -i
-15. fips-mode-setup --check
-```
-FIPS mode is enabled.
-```
-16. cd /home/ec2-user/oscap
-* Run playbook 
-```
-oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-arf /tmp/arf.xml --report /home/ec2-user/oscap/rhel8-ami-oscap-post.report.html --fetch-remote-resources --oval-results /usr/share/xml/scap/ssg/content/ssg-rhel8-ds-1.2.xml
-```
-17. chown -R ec2-user:ec2-user /home/ec2-user
-18. scp -i "alpha_key_pair.pem" ec2-user@NewRhel8PublicIP:oscap/* .
-* Open a second WSL terminal and cd to staging directory to pull file
-19. Open report in browser
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_put_response_hop_limit = "1"
+    http_tokens                 = "optional"
+    instance_metadata_tags      = "disabled"
+  }
 
-![Screenshot](resources/oscap2.JPG)
+  monitoring = true
+
+  root_block_device {
+    delete_on_termination = true
+    encrypted             = true
+    kms_key_id            = "arn:aws-us-gov:kms:us-gov-west-1:036436800059:key/23051040-d05e-4080-99f6-bbd740bb1b14"
+    volume_size           = 128
+    volume_type           = "gp2"
+  }
+
+  source_dest_check = true
+  subnet_id         = var.subnet_id
+  tenancy                = "default"
+  vpc_security_group_ids = ["${aws_security_group.default.id}"]
+
+  tags = var.tags
+}
+```
+8. terraform init && terraform plan --out pg-rhel8-lvm-stig-spel.out
+9. terraform apply pg-rhel8-lvm-stig-spel.out
+10. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 and verify instance is up
+
+![Screenshot](resources/ec2-verify1.JPG)
+
+11. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 > Actions > Security > Modify IAM role > cdm3-ec2RoleForSSM > Update role 
+
+# Update local user password via SSM
+1. https://console.amazonaws-us-gov.com > EC2 > pg-rhel8-lvm-stig-spel-terraform-ec2 > Connect to Session Manager 
+2. sudo -i 
+3. passwd maintuser 
+4. dnf update -y && reboot 
+

@@ -2,5 +2,16 @@
 alpha_key_pair.pem
 
 # ignore variables.tf
-variables.tf
+terraform/variables.tf
 
+# ignore .terraform
+terraform/.terraform*
+
+# ignore terraform
+terraform/terraform*
+
+# ignore awx.out
+terraform/*.out
+
+# ignore terraform/ ssh key
+terraform/alpha_key_pair.pem
