@@ -234,10 +234,12 @@ localhost                  : ok=2626 changed=437  unreachable=0    failed=0    s
 ![Screenshot](resources/ansible1.JPG)
 
 # Fix visudo 
-1. visudo #Uncomment # %wheel ALL=(ALL) NOPASSWD: ALL or you wont be able to sudo after hardening
+* #Uncomment # %wheel ALL=(ALL) NOPASSWD: ALL or you wont be able to sudo after hardening
+1. visudo
+```
 ## Same thing without a password
 %wheel  ALL=(ALL)       NOPASSWD: ALL
-
+```
 # Post additional hardening [OSCAP Report](https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami/tree/main/reports)
 * Note the ost hardening oscap score is 91%
 1. cd /home/ec2-user/oscap
