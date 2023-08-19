@@ -8,8 +8,8 @@
 
 # Deploy EC2 and SG from spel ami 
 1. ssh -i alpha_key_pair.pem ec2-user@PG-TerraformPublicIP
-2. cd /home/christopher.sargent/ && git clone ecs_rhel8_lvm_stig_spel_ami
-3. cd ecs_rhel8_lvm_stig_spel_ami/ && vim providers.tf
+2. cd /home/christopher.sargent/ && git clone https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami.git
+3. cd ecs_rhel8_lvm_stig_spel_ami/terraform && vim providers.tf
 ```
 # Playground
 provider "aws" {
