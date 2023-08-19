@@ -42,7 +42,6 @@ variable "ssh_private_key" {
   default         = "alpha_key_pair.pem" # specify ssh key 
   description     = "alpha_key_pair"
 }
-# Define Variables
 variable "vpc_id" {
   description = "The ID of the VPC."
   type        = string
