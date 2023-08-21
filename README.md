@@ -204,10 +204,12 @@ ssh-rsa AddPublicKeyHere alpha_key_pair
 4. chmod 600 authorized_keys
 5. usermod -aG wheel ec2-user
 6. chown -R ec2-user:ec2-user /home/ec2-user/
-7. visudo #Uncomment # %wheel ALL=(ALL) NOPASSWD: ALL or you wont be able to sudo after hardening
+7. visudo 
+* Uncomment # %wheel ALL=(ALL) NOPASSWD: ALL or you wont be able to sudo after hardening
+```
 ## Same thing without a password
 %wheel  ALL=(ALL)       NOPASSWD: ALL
-
+```
 # Pre hardening [OSCAP Report](https://github.com/ChristopherSargent/ecs_rhel8_lvm_stig_spel_ami/tree/main/reports)
 * Note the pre hardening oscap score is 49%
 1. cd /home/ec2-user/oscap/
