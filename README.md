@@ -253,3 +253,136 @@ oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_stig --results-a
 4. exit && exit 
 4. mkdir RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports && cd RHEL8-LVM-STIG-SPEL-08172023-CAS/pg/reports
 5. scp -i /root/ecs/alpha_key_pair.pem ec2-user@PublicIP:oscap/pg-rhel8-ami-spel-oscap-post.report.html .
+
+# Expand and Resize disk and logical volumes
+1. parted /dev/xvda u s p
+* Select Fix and Note you need the start sector on partition 2 32768s
+```
+Warning: Not all of the space available to /dev/xvda appears to be used, you can fix the GPT to use all of the space (an extra 226492416 blocks) or continue with the current setting?
+Fix/Ignore? Fix
+Model: Xen Virtual Block Device (xvd)
+Disk /dev/xvda: 268435456s
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags:
+
+Number  Start   End        Size       File system  Name     Flags
+ 1      2048s   32767s     30720s                  primary  bios_grub
+ 2      32768s  41940991s  41908224s               primary  lvm
+```
+2. parted /dev/xvda
+* Select p for print, rm2 to remove the second partition, 
+```
+GNU Parted 3.2
+Using /dev/xvda
+Welcome to GNU Parted! Type 'help' to view a list of commands.
+(parted) p
+Model: Xen Virtual Block Device (xvd)
+Disk /dev/xvda: 137GB
+Sector size (logical/physical): 512B/512B
+Partition Table: gpt
+Disk Flags:
+
+Number  Start   End     Size    File system  Name     Flags
+ 1      1049kB  16.8MB  15.7MB               primary  bios_grub
+ 2      16.8MB  21.5GB  21.5GB               primary  lvm
+
+(parted) rm 2
+Error: Partition(s) 2 on /dev/xvda have been written, but we have been unable to inform the kernel of the change, probably because it/they are in use.  As a result, the old partition(s) will remain in use.  You should reboot now before making further changes.
+Ignore/Cancel? i
+(parted) ^Z
+[1]+  Stopped                 parted /dev/xvda
+```
+3. parted -s /dev/xvda mkpart primary 32768s 100%
+* Note start sector from step 1 
+4. vgdisplay
+* Note that no space is added 
+```
+  --- Volume group ---
+  VG Name               RootVG
+  System ID
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  8
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                7
+  Open LV               6
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               19.98 GiB
+  PE Size               4.00 MiB
+  Total PE              5115
+  Alloc PE / Size       5115 / 19.98 GiB
+  Free  PE / Size       0 / 0
+  VG UUID               A5X2j3-f1Ix-Hm43-f1O1-dRea-KLhh-aEcpJp
+```
+5. pvresize /dev/xvda2
+6. vgdisplay
+* Note there is now 108.00GiB of Free space
+```
+  --- Volume group ---
+  VG Name               RootVG
+  System ID
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  9
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                7
+  Open LV               6
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               127.98 GiB
+  PE Size               4.00 MiB
+  Total PE              32763
+  Alloc PE / Size       5115 / 19.98 GiB
+  Free  PE / Size       27648 / 108.00 GiB
+  VG UUID               A5X2j3-f1Ix-Hm43-f1O1-dRea-KLhh-aEcpJp
+```
+7. lvscan
+```
+  ACTIVE            '/dev/RootVG/rootVol' [5.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/swapVol' [2.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/homeVol' [1.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/varVol' [2.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/varTmpVol' [2.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/logVol' [2.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/auditVol' [5.98 GiB] inherit
+  ```
+8. lvextend -r -L +15G /dev/RootVG/rootVol
+* Note only putting the output of the first command for reference
+```
+  Size of logical volume RootVG/rootVol changed from 5.00 GiB (1280 extents) to 20.00 GiB (5120 extents).
+  Logical volume RootVG/rootVol successfully resized.
+meta-data=/dev/mapper/RootVG-rootVol isize=512    agcount=8, agsize=163840 blks
+         =                       sectsz=512   attr=2, projid32bit=1
+         =                       crc=1        finobt=1, sparse=1, rmapbt=0
+         =                       reflink=1    bigtime=0 inobtcount=0
+data     =                       bsize=4096   blocks=1310720, imaxpct=25
+         =                       sunit=1      swidth=1 blks
+naming   =version 2              bsize=4096   ascii-ci=0, ftype=1
+log      =internal log           bsize=4096   blocks=2560, version=2
+         =                       sectsz=512   sunit=1 blks, lazy-count=1
+realtime =none                   extsz=4096   blocks=0, rtextents=0
+data blocks changed from 1310720 to 5242880
+```
+9. lvextend -r -L +20G /dev/RootVG/homeVol
+10. lvextend -r -L +20G /dev/RootVG/varVol
+11. lvextend -r -L +5G /dev/RootVG/logVol
+12. lvextend -r -L +5G /dev/RootVG/varTmpVol
+13. lvscan
+* Note the sizes are more appropriate now
+```
+  ACTIVE            '/dev/RootVG/rootVol' [20.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/swapVol' [2.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/homeVol' [21.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/varVol' [22.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/varTmpVol' [7.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/logVol' [7.00 GiB] inherit
+  ACTIVE            '/dev/RootVG/auditVol' [5.98 GiB] inherit
+```
