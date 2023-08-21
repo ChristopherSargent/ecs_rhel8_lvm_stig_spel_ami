@@ -424,8 +424,10 @@ UUID=5fb06bd0-0bb0-7ffb-45f1-d6edd65f3e03
 1. grub2-setpassword 
 2. grub2-mkconfig
 3. cat /boot/grub2/user.cfg
+* Should see hashed value
 ```
-GRUB2_PASSWORD=grub.pbkdf2.sha512.10000.709C56C288AB880B5A54A7EC846969BD25A288AFD7379A5C58D8F7E421BB4345E02E6F04CF31AEAA142EDA34566BB5BD7F2955A9CF8611B4BAC58BF9E017C609.509FF4918192B73CD81C58218A530E6824DC8016EE0AE4A36338B8FCC3D34F4868593431331B8C7FBF913DC0BF5CD9081996E613A5EE8738631DE482624E45E0```
+GRUB2_PASSWORD=grub.pbkdf2.sha512.10000
+```
 # Set Existing Passwords Minimum Age
 1. chage -m 1 maintuser
 
@@ -490,8 +492,8 @@ HISTFILESIZE=20000
 
 # Fix chrony.conf 
 1. cp /etc/chrony.conf /etc/chrony.conf.08212023
-2. vim 
-*
+2. vim  /etc/chrony.conf
+* Comment out pool and add servers
 ```
 # Use public servers from the pool.ntp.org project.
 # Please consider joining the pool (http://www.pool.ntp.org/join.html).
